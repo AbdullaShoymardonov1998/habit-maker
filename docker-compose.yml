@@ -1,0 +1,55 @@
+version: "3.1"
+
+services:
+  postgres:
+    container_name: habit-maker-postgres
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "6000:5432"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.postgres.rule=Host(`${POSTGRES_DOMAIN}`)"
+      - "traefik.http.routers.postgres.entrypoints=websecure"
+      - "traefik.http.routers.postgres.tls.certresolver=letsencrypt"
+      - "traefik.http.services.postgres.loadbalancer.server.port=5432"
+      - "traefik.docker.network=ta_default"
+    volumes:
+      - habit-db:/var/lib/postgresql/data
+    networks:
+     - common_network
+  backend:
+    container_name: habit-maker-backend
+    image: nodirshox/habit-maker-backend:latest
+    restart: always
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - BACKEND_API=${BACKEND_API}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+    ports:
+      - "6001:4000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${BACKEND_DOMAIN}`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=4000"
+      - "traefik.docker.network=ta_default"
+    networks:
+     - common_network
+volumes:
+  habit-db:
+    driver: local
+networks:
+ common_network:
+  external: true
+  name: common_network

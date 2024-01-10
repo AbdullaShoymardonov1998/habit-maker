@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  habits Habit[]
+  role   UserRoles @default(USER)
+
+  @@map("users")
+}
+
+model VerificationCodes {
+  id        String   @id @default(uuid())
+  otp       String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("verification_codes")
+}
+
+model RestoreAccountToken {
+  // User id
+  id        String   @id @default(uuid())
+  email     String
+  token     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("restore_account_tokens")
+}
+
+model Habit {
+  id        String   @id @default(uuid())
+  title     String
+  color     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  activities Activity[]
+  repetition Repetition?
+
+  @@map("habits")
+}
+
+model Repetition {
+  id               String  @id @default(uuid())
+  numberOfDays     Int     @default(0) @map("number_of_days")
+  notifyTime       String  @default("12:00") @map("notify_time")
+  showNotification Boolean @default(false) @map("show_notification")
+
+  habitId  String     @unique @map("habit_id")
+  habit    Habit      @relation(fields: [habitId], references: [id])
+  weekdays Weekdays[]
+
+  @@map("repetitions")
+}
+
+model Weekdays {
+  id String @id @default(uuid())
+
+  weekday    Weekday
+  isSelected Boolean @default(false) @map("is_selected")
+
+  repetition   Repetition @relation(fields: [repetitionId], references: [id])
+  repetitionId String     @map("repetition_id")
+
+  @@map("weekdays")
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+model Activity {
+  id   String   @id @default(uuid())
+  date DateTime @default(now())
+
+  habitId String @map("habit_id")
+  habit   Habit  @relation(fields: [habitId], references: [id])
+
+  @@map("activities")
+}
+
+enum UserRoles {
+  ADMIN
+  USER
+}
